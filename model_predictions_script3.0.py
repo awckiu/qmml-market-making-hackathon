@@ -37,14 +37,14 @@ warnings.filterwarnings("ignore")
 # ==========================================
 # CONFIG
 # ==========================================
-STOCK_I = 4
-TRAIN_FILE = "cleaned_training_data/stock_4_train_cleaned.csv"
-TEST_FILE = "cleaned_training_data/stock_4_test.csv"
+STOCK_I = 7
+TRAIN_FILE = "cleaned_training_data/stock_7_train_cleaned.csv"
+TEST_FILE = "cleaned_training_data/stock_7_test.csv"
 CURRENT_SUMMARY_FILE = "summary.csv"
 
 UPDATED_SUMMARY_FILE = "summary_updated.csv"
 CLEANED_SUMMARY_FILE = "summary_cleaned.csv"
-RMSE_OUTPUT = "stock_4_model_rmse_results.csv"
+RMSE_OUTPUT = "stock_7_model_rmse_results.csv"
 
 RANDOM_STATE = 42
 
@@ -383,7 +383,7 @@ def get_models_for_stock(stock_i, n_rows):
         }
 
 # ==========================================
-# MAIN - STOCK 4 ONLY
+# MAIN - STOCK 7 ONLY
 # ==========================================
 print(f"\nProcessing Stock {STOCK_I}...")
 
@@ -475,7 +475,7 @@ bid = fair_value - bid_uncertainty
 ask = fair_value + ask_uncertainty
 spread = ask - bid
 
-new_stock4_row = {
+new_stock7_row = {
     "stock": f"Stock {STOCK_I}",
     "group": group,
     "selection_method": selection_method,
@@ -501,21 +501,21 @@ new_stock4_row = {
     "confidence": round(final_confidence, 4)
 }
 
-new_stock4_df = pd.DataFrame([new_stock4_row])
+new_stock7_df = pd.DataFrame([new_stock7_row])
 
-print("\n=== NEW STOCK 4 ROW ===")
-print(new_stock4_df.to_string(index=False))
+print("\n=== NEW STOCK 7 ROW ===")
+print(new_stock7_df.to_string(index=False))
 
-# replace only Stock 4, keep everything else the same
+# replace only Stock 7, keep existing Stock 4 summary as-is
 summary_df = summary_df[summary_df["stock"] != f"Stock {STOCK_I}"].copy()
-summary_df = pd.concat([summary_df, new_stock4_df], ignore_index=True)
+summary_df = pd.concat([summary_df, new_stock7_df], ignore_index=True)
 
 summary_df["stock_num"] = summary_df["stock"].str.extract(r"(\d+)").astype(int)
 summary_df = summary_df.sort_values("stock_num").drop(columns=["stock_num"]).reset_index(drop=True)
 
 summary_df.to_csv(UPDATED_SUMMARY_FILE, index=False)
 
-# save stock 4 rmse results
+# save stock 7 rmse results
 rmse_df = pd.DataFrame(rmse_rows)
 rmse_df.to_csv(RMSE_OUTPUT, index=False)
 
