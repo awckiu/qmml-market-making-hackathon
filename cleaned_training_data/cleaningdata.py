@@ -27,6 +27,10 @@ def clean_df(df):
     return df.reset_index(drop=True)
 
 
-df = pd.read_csv('stock_X_train.csv')
+df = pd.read_csv('cleaned_training_data/stock_4_train.csv')
 df = clean_df(df)
-df.to_csv('stock_X_train_cleaned.csv', index=False)
+df.to_csv('cleaned_training_data/stock_4_train_cleaned.csv', index=False)
+
+df = pd.read_csv('cleaned_training_data/stock_7_train.csv')
+df = clean_df(df)
+df.to_csv('cleaned_training_data/stock_7_train_cleaned.csv', index=False)
