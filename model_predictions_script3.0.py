@@ -231,17 +231,6 @@ def select_top3_models(stock_i, results, fitted_predictions):
     if len(safer_candidate) < 3:
         safer_candidate = results_sorted[:3]
 
-    safer_names = [name for name, _ in safer_candidate]
-    safer_preds = [fitted_predictions[name] for name in safer_names]
-    safer_fair = float(np.mean(safer_preds))
-    safer_rel_range = rel_prediction_range(safer_preds, safer_fair)
-    safer_safe_count = count_safe_simple_models(safer_names)
-
-    if safer_safe_count < 2 or safer_rel_range > 0.12:
-        stricter_candidate = simple_results[:3]
-        if len(stricter_candidate) == 3:
-            return stricter_candidate, "strict_simple_fallback"
-
     return safer_candidate, "safe_fallback"
 
 
@@ -383,7 +372,7 @@ def get_models_for_stock(stock_i, n_rows):
         }
 
 # ==========================================
-# MAIN - STOCK 4 ONLY
+# MAIN
 # ==========================================
 print(f"\nProcessing Stock {STOCK_I}...")
 
@@ -397,8 +386,6 @@ if "target" not in train_df.columns:
 X = train_df.drop(columns=["target"])
 y = train_df["target"]
 X_test = test_df.copy()
-
-# ensure test columns match train columns
 X_test = X_test.reindex(columns=X.columns, fill_value=np.nan)
 
 n_rows = len(train_df)
@@ -408,10 +395,6 @@ spread_mult = STOCK_RULES[STOCK_I]["spread_mult"]
 cv = choose_cv(STOCK_I)
 models = get_models_for_stock(STOCK_I, n_rows)
 
-print(f"Group: {group}")
-print(f"Rows: {n_rows}")
-print(f"Models being tested: {len(models)}")
-
 results = []
 fitted_predictions = {}
 rmse_rows = []
@@ -419,7 +402,6 @@ rmse_rows = []
 for name, model in models.items():
     try:
         rmse = rmse_cv(model, X, y, cv)
-
         model.fit(X, y)
         pred = float(model.predict(X_test)[0])
 
@@ -438,9 +420,6 @@ for name, model in models.items():
 
     except Exception as e:
         print(f"{name} failed: {e}")
-
-if len(results) < 3:
-    raise ValueError(f"Not enough successful models for Stock {STOCK_I}")
 
 top3, selection_method = select_top3_models(STOCK_I, results, fitted_predictions)
 
@@ -478,35 +457,23 @@ spread = ask - bid
 new_stock4_row = {
     "stock": f"Stock {STOCK_I}",
     "group": group,
-    "selection_method": selection_method,
     "best1": format_model_price(pred_names[0], pred_values[0]),
     "best2": format_model_price(pred_names[1], pred_values[1]),
     "best3": format_model_price(pred_names[2], pred_values[2]),
     "best1_weight": round(weights[0], 4),
     "best2_weight": round(weights[1], 4),
     "best3_weight": round(weights[2], 4),
-    "safe_simple_count": count_safe_simple_models(pred_names),
     "weighted_average": round(fair_value, 6),
     "simple_average": round(simple_average, 6),
-    "top3_rel_range": round(rel_prediction_range(pred_values, fair_value), 6),
     "bid": round(bid, 6),
     "ask": round(ask, 6),
     "spread": round(spread, 6),
     "avg_top3_rmse": round(avg_rmse, 6),
-    "agreement_multiplier": round(agreement_mult, 4),
-    "confidence_multiplier": round(confidence_mult, 4),
-    "bid_side_multiplier": round(bid_side_mult, 4),
-    "ask_side_multiplier": round(ask_side_mult, 4),
-    "skew_score": round(skew_score, 6),
     "confidence": round(final_confidence, 4)
 }
 
 new_stock4_df = pd.DataFrame([new_stock4_row])
 
-print("\n=== NEW STOCK 4 ROW ===")
-print(new_stock4_df.to_string(index=False))
-
-# replace only Stock 4, keep everything else the same
 summary_df = summary_df[summary_df["stock"] != f"Stock {STOCK_I}"].copy()
 summary_df = pd.concat([summary_df, new_stock4_df], ignore_index=True)
 
@@ -515,32 +482,13 @@ summary_df = summary_df.sort_values("stock_num").drop(columns=["stock_num"]).res
 
 summary_df.to_csv(UPDATED_SUMMARY_FILE, index=False)
 
-# save stock 4 rmse results
 rmse_df = pd.DataFrame(rmse_rows)
 rmse_df.to_csv(RMSE_OUTPUT, index=False)
 
-# cleaned version with unwanted columns removed
-cols_to_remove = [
-    "selection_method",
-    "safe_simple_count",
-    "top3_rel_range",
-    "agreement_multiplier",
-    "confidence_multiplier",
-    "bid_side_multiplier",
-    "ask_side_multiplier",
-    "skew_score"
-]
-
-cleaned_summary_df = summary_df.drop(
-    columns=[col for col in cols_to_remove if col in summary_df.columns]
-)
-
+cleaned_summary_df = summary_df.copy()
 cleaned_summary_df.to_csv(CLEANED_SUMMARY_FILE, index=False)
 
 print("\nDone.")
 print(f"Saved {UPDATED_SUMMARY_FILE}")
 print(f"Saved {CLEANED_SUMMARY_FILE}")
 print(f"Saved {RMSE_OUTPUT}")
-
-print("\n=== CLEANED SUMMARY PREVIEW ===")
-print(cleaned_summary_df.to_string(index=False))
